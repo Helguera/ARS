@@ -151,8 +151,7 @@ int main(int argc, char *argv[]){
 
             codigo=datagrama[1];
             if(codigo == 5){    //Mensaje de error
-                printf("Error");
-                fclose(fichero);
+                printf("Error %d (%s)\n\n",datagrama[3],&datagrama[4]);
                 exit(EXIT_FAILURE);
             }
 
@@ -172,7 +171,7 @@ int main(int argc, char *argv[]){
             if(primer_datagrama==1){
                 fichero=fopen(nombre_fichero,"r");
                 if (fichero==NULL){
-                    printf("No existe el fichero");
+                    printf("No existe el fichero\n");
                     exit(EXIT_FAILURE);
                 }
     
@@ -212,27 +211,35 @@ int main(int argc, char *argv[]){
                 printf("Error al enviar\n");
                 exit(EXIT_FAILURE);
             }
+
+            if(primer_datagrama==1 && desarrollado==1){
+                printf("Enviada solicitud de escritura de %s a servidor tftp en %s\n",nombre_fichero,ip);
+            }
+            if(primer_datagrama==0 && desarrollado==1){
+                printf("Enviamos el datagrama del bloque %d\n",num_bloque);
+            }
     
             if((num_bloque_rec = recvfrom(sockfd,datagrama,MAXTAMBYTE,0,(struct sockaddr *)&direccion,&addrlen))<0){
                 printf("Error al recibir\n");
                 exit(EXIT_FAILURE);
+            }else{
+                if(desarrollado==1){
+                    printf("Recibido el ACK\n");
+                }
             }
     
             codigo=datagrama[1];
             if(codigo==5){
-                printf("Error");
-                fclose(fichero);
+                printf("Error %d (%s)\n\n",datagrama[3],&datagrama[4]);
                 exit(EXIT_FAILURE);
             }
     
             if(primer_datagrama==0 && bytes_envio<MAXTAMBYTE){
-                if(fclose(fichero)==EOF){
-                    printf("No se ha podido cerrar el fichero");
-                    exit(EXIT_FAILURE);
-                }
+                fclose(fichero);
+                printf("El bloque %d era el ultimo: cerramos el fichero\n",num_bloque);
                 salir=1;
             }
-    
+
             num_bloque+=1;
             primer_datagrama=0;
         }

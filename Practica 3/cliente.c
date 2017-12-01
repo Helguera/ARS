@@ -112,12 +112,11 @@ int main(int argc, char *argv[]){
                 //Se crea el datagrama RRQ, solo si es el primer datragrama
                 datagrama[0]=0;                                             //codigo de operacion
                 datagrama[1]=1;                                             //codigo de operacion
-                strcpy(datagrama+2, nombre_fichero);                        //se añade el nombre del fichero
-                strcpy(datagrama+(strlen(nombre_fichero)+3),"octet");       //se añade el modo "octet"
+                strcpy(&datagrama[2], nombre_fichero);                        //se añade el nombre del fichero
+                strcpy(&datagrama[strlen(nombre_fichero)+3],"octet");       //se añade el modo "octet"
             }else{                
                 //Para el resto de datagramas que no son el primero
                 num_bloque_rec=(unsigned char) datagrama[2]*256 + (unsigned char) datagrama[3];         //obtiene el numero de bloque que se ha recibido
-                //printf("El numero de bloque es %d\n", num_bloque_rec);
                 if(num_bloque_rec!=num_bloque){                 //Comprobacion de que se recibe el bloque adecuado segun su orden
 					printf("Error, se recibio el bloque %d pero se esperaba el bloque %d\n",num_bloque_rec,num_bloque);
 					exit(EXIT_FAILURE);
@@ -169,7 +168,7 @@ int main(int argc, char *argv[]){
             }
 
             //Escritura en el fichero, hasta que se reciba un bloque de <512 bytes
-            fwrite(datagrama+4, sizeof(char),numero_bytes-4,fichero);
+            fwrite(&datagrama[4],1,numero_bytes-4,fichero);
             if(numero_bytes<MAXTAMBYTE){
                 printf("El bloque %d era el ultimo: cerramos el fichero\n",num_bloque);
                 fflush(stdout);
@@ -195,14 +194,14 @@ int main(int argc, char *argv[]){
                 //Se crea el datagrama WRQ
                 datagrama[0]=0;
                 datagrama[1]=2;
-                strcpy(datagrama+2, nombre_fichero);
-                strcpy(datagrama+(strlen(nombre_fichero))+3,"octet");
+                strcpy(&datagrama[2], nombre_fichero);
+                strcpy(&datagrama[(strlen(nombre_fichero))+3],"octet");
                 datagrama_size=2+strlen(nombre_fichero)+1+strlen("octect")+1;
 
             }else{
                 //Para el resto de datagramas que no son el primero
                 if(!feof(fichero)){     //Mientras haya algo que enviar
-                    bytes_envio=fread(datagrama+4,1,512,fichero);
+                    bytes_envio=fread(&datagrama[4],1,MAXTAMBYTE,fichero);
                 }else{                  //El ultimo datagrama estara vacio de datos
                     bytes_envio=0;
                 }
@@ -217,7 +216,7 @@ int main(int argc, char *argv[]){
     
                 datagrama_size=2+2+bytes_envio;         //Se calcula el tamaño del datagrama para luego limitarlo en el envio
     
-                num_bloque_rec=(unsigned char) datagrama[2]*256 + (unsigned char) datagrama[3];
+                num_bloque_rec=(unsigned char) datagrama[2]*256 + (unsigned char) datagrama[3];         //Numero de bloque recibido
                 if(num_bloque_rec!=num_bloque){
                     printf("Error, se recibio el bloque %d pero se esperaba el bloque %d\n",num_bloque_rec,num_bloque);
                     exit(EXIT_FAILURE);
@@ -263,7 +262,7 @@ int main(int argc, char *argv[]){
                 fclose(fichero);
                 printf("El bloque %d era el ultimo: cerramos el fichero\n",num_bloque);
                 salir=1;
-            }<
+            }
 
             num_bloque+=1;
             primer_datagrama=0;

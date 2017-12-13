@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){
     ECHORequest echoRequest;
     ECHOResponse echoResponse;
 
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if(sockfd == -1){
         fprintf(stderr, "Error al crear el socket");
         exit(EXIT_FAILURE);
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]){
     local.sin_port=0;
     local.sin_addr.s_addr =INADDR_ANY;
 
-	if (bind(sockfd, (struct sockaddr *) &local, sizeof(struct sockaddr_in)) == -1) {
+	if (bind(sockfd, (struct sockaddr *) &local, sizeof(local)) == -1) {
 		perror("Error al hacer el bind\n");
 		exit(EXIT_FAILURE);
 	}
@@ -75,6 +75,7 @@ int main(int argc, char *argv[]){
     bzero(&echoRequest, sizeof(echoRequest));
     echoRequest.ID=getpid();
     echoRequest.SeqNumber=0;
+    echoRequest.icmpHeader.Checksum = 0;
     strcpy(echoRequest.payload, "payload");
 
     echoRequest.icmpHeader.Type=8;
@@ -95,7 +96,7 @@ int main(int argc, char *argv[]){
     acumulado=(acumulado>>16) + (acumulado & 0x0000ffff);
     acumulado=(acumulado>>16) + (acumulado & 0x0000ffff);
     acumulado = ~acumulado;
-    //printf("Checksum al principio -> %d\n",(unsigned int short)acumulado);
+    printf("Checksum al principio -> %d\n",(unsigned int short)acumulado);
     fflush(stdout);
 
     //Asignacion del cheksum
@@ -112,7 +113,7 @@ int main(int argc, char *argv[]){
     acumulado=(acumulado>>16) + (acumulado & 0x0000ffff);
     acumulado=(acumulado>>16) + (acumulado & 0x0000ffff);
     acumulado = ~acumulado;
-    //printf("Checksum al final -> %d\n",(unsigned short int)acumulado);
+    printf("Checksum al final -> %d\n",(unsigned short int)acumulado);
     fflush(stdout);
 
     if((unsigned short int) acumulado != 0){
@@ -121,7 +122,7 @@ int main(int argc, char *argv[]){
     }
 
     //Se envia el paquete ICMP
-    if(sendto(sockfd,&echoRequest,sizeof(echoRequest),0,(struct sockaddr *)&remoto,sizeof(struct sockaddr_in))<0){
+    if(sendto(sockfd,&echoRequest,sizeof(echoRequest),0,(struct sockaddr *)&remoto,sizeof(struct sockaddr_in))==-1){
         printf("Error al enviar\n");
         exit(EXIT_FAILURE);
     }

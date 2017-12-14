@@ -24,8 +24,9 @@ struct in_addr addr;
 struct sockaddr_in local, remoto;
 socklen_t addr_size;
 
-
+//===========================================================================================================
 int main(int argc, char *argv[]){
+    //*************** Comprobacion de argumentos *******************************
     if (argc !=2 && argc !=3){
         fprintf(stderr,"uso: %s ip-servidor [-v]\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -51,18 +52,19 @@ int main(int argc, char *argv[]){
     ECHORequest echoRequest;
     ECHOResponse echoResponse;
 
+    //Creacion del socket
     sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if(sockfd == -1){
         fprintf(stderr, "Error al crear el socket");
         exit(EXIT_FAILURE);
     }
 
+    //direccion remota
     remoto.sin_family=AF_INET;
     remoto.sin_port=0;
     remoto.sin_addr.s_addr = inet_addr(ip);
-    //memset(remoto.sin_zero, '\0', sizeof remoto.sin_zero);
-    //addr_size = sizeof remoto;
 
+    //direccion local
     local.sin_family=AF_INET;
     local.sin_port=0;
     local.sin_addr.s_addr =INADDR_ANY;
@@ -71,6 +73,11 @@ int main(int argc, char *argv[]){
 		perror("Error al hacer el bind\n");
 		exit(EXIT_FAILURE);
 	}
+
+    //Inicializacion de los campos del paquete
+    if(desarrollado==1){
+        printf("-> Generando cabecera ICMP.");
+    }
 
     bzero(&echoRequest, sizeof(echoRequest));
     echoRequest.ID=getpid();
@@ -96,8 +103,8 @@ int main(int argc, char *argv[]){
     acumulado=(acumulado>>16) + (acumulado & 0x0000ffff);
     acumulado=(acumulado>>16) + (acumulado & 0x0000ffff);
     acumulado = ~acumulado;
-    printf("Checksum al principio -> %d\n",(unsigned int short)acumulado);
-    fflush(stdout);
+    //printf("Checksum al principio -> %d\n",(unsigned int short)acumulado);
+    //fflush(stdout);
 
     //Asignacion del cheksum
     echoRequest.icmpHeader.Checksum=(unsigned int short) acumulado;
@@ -113,12 +120,22 @@ int main(int argc, char *argv[]){
     acumulado=(acumulado>>16) + (acumulado & 0x0000ffff);
     acumulado=(acumulado>>16) + (acumulado & 0x0000ffff);
     acumulado = ~acumulado;
-    printf("Checksum al final -> %d\n",(unsigned short int)acumulado);
-    fflush(stdout);
+    //printf("Checksum al final -> %d\n",(unsigned short int)acumulado);
+    //fflush(stdout);
 
-    if((unsigned short int) acumulado != 0){
+    if((unsigned short int) acumulado != 0){        //Si el cheksum da cero en la comprobacion es correcto
         printf("Error al calcular el checksum\n");
         exit(EXIT_FAILURE);
+    }
+
+    if(desarrollado==1){
+        printf("-> Type: %d\n", echoRequest.icmpHeader.Type);
+        printf("-> Code: %d\n", echoRequest.icmpHeader.Code);
+        printf("-> Identifier (pid): %d\n", echoRequest.ID);
+        printf("-> Seq.Number: %d\n", echoRequest.SeqNumber);
+        printf("-> Cadena a enviar: %s\n", echoRequest.payload);
+        printf("-> Checksum: 0x%x\n", echoRequest.icmpHeader.Checksum);
+        printf("-> Tamaño total del paquete ICMP: %ld\n", sizeof(echoRequest));
     }
 
     //Se envia el paquete ICMP
@@ -126,6 +143,7 @@ int main(int argc, char *argv[]){
         printf("Error al enviar\n");
         exit(EXIT_FAILURE);
     }
+    printf("Paquete ICMP enviado a %s\n", ip);
 
     //Se recibe la respuesta
     socklen_t addrlen= sizeof(remoto);
@@ -134,7 +152,16 @@ int main(int argc, char *argv[]){
         printf("Error al recibir\n");
         exit(EXIT_FAILURE);
     }
+    printf("Respuesta recibida desde: %s\n", ip);
+    if(desarrollado==1){
+        printf("-> Tamaño de la respuesta: %d\n", numero_bytes);
+        printf("-> Cadena recibida: %s\n", echoResponse.payload);
+        printf("-> Identifier (pid): %d\n", echoResponse.SeqNumber);
+        printf("-> TTL: %d\n", echoResponse.ipHeader.TTL);
+    }
 
+    //Se traducen los campos de Tipo y Codigo a texto para poder entenderlo (codigos obtenidos de Wikipedia)
+    printf("Descripcion de la respuesta: ");
     switch(echoResponse.icmpHeader.Type){
         case 0:
             printf("Echo reply || Type %d || Code %d\n",echoResponse.icmpHeader.Type, echoResponse.icmpHeader.Code);

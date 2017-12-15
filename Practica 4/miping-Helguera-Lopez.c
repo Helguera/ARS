@@ -15,8 +15,7 @@
 
 #include "ip-icmp-ping.h"
 
-//Cmabiar el nombre al socket enlace
-int sockfd, enlace, numero_bytes;
+int sockfd, numero_bytes;
 int desarrollado=0;
 char ip[20];                       //guarda la ip
 
@@ -36,6 +35,10 @@ int main(int argc, char *argv[]){
             exit(EXIT_FAILURE);
         }
         strcpy(ip, argv[1]);
+        if(strcmp(ip, "127.0.0.1")==0){
+            fprintf(stderr, "Error, no se puede usar la direccion de loopback\n");
+            exit(EXIT_FAILURE);
+        }
 
         if(argc==3){
             if(strcmp(argv[2],"-v")==0){
@@ -156,7 +159,7 @@ int main(int argc, char *argv[]){
     if(desarrollado==1){
         printf("-> Tamaño de la respuesta: %d\n", numero_bytes);
         printf("-> Cadena recibida: %s\n", echoResponse.payload);
-        printf("-> Identifier (pid): %d\n", echoResponse.SeqNumber);
+        printf("-> Identifier (pid): %d\n", echoResponse.ID);
         printf("-> TTL: %d\n", echoResponse.ipHeader.TTL);
     }
 
